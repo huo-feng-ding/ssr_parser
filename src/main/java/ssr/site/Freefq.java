@@ -9,7 +9,7 @@ public class Freefq extends AbstractSite {
     private final static Pattern ssrPattern = Pattern.compile("ssr://[\\w=]+");
     
     public Freefq(String html) {
-        if (html != null && "html".equalsIgnoreCase(html.trim())) {
+        if (html != null && "html".equalsIgnoreCase(html.trim())) {//html类型的文件，可以直接从文件中提取ssr链接地址，不需要构造
             needConstruct = false;
         }
     }
