@@ -1,5 +1,6 @@
 package ssr.parser;
 
+import ssr.http.ShadowsocksDetect;
 import ssr.site.Freefq;
 import ssr.site.FreessSite;
 import ssr.site.ISite;
@@ -38,7 +39,8 @@ public class SsrParser {
         
         List<String> fileLines = Files.readAllLines(Paths.get(args[0]), StandardCharsets.UTF_8);
         fileLines.forEach(site::parse);
-        site.printSsr();
+    
+        ShadowsocksDetect.detect(site.getSsr());
     }
     
 }

@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Base64.Encoder;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 public abstract class AbstractSite implements ISite {
@@ -14,7 +15,7 @@ public abstract class AbstractSite implements ISite {
     protected final static String ssrFormat = "%s:%s:origin:%s:plain:%s/?obfsparam=&remarks=&group=%s";
     protected final static Encoder base64Encoder = Base64.getUrlEncoder().withoutPadding();
     
-    private final static HashSet<String> SsrSet = new HashSet<>();
+    private final static HashSet<String> ssrSet = new HashSet<>();
     
     protected void parserSsr(SsrInfo ssrInfo) {
         String format = String.format(ssrFormat,
@@ -28,13 +29,13 @@ public abstract class AbstractSite implements ISite {
     
     protected void addSsrSet(String ssr) {
         if (ssr != null && !"".equals(ssr)) {
-            SsrSet.add(ssr);
+            ssrSet.add(ssr);
         }
     }
     
     @Override
-    public void printSsr() {
-        SsrSet.forEach(System.out::println);
+    public Set<String > getSsr() {
+        return ssrSet;
     }
     
     protected static class SsrInfo {

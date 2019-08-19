@@ -1,22 +1,69 @@
 package com.stfl.ss;
 
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
+import org.bouncycastle.crypto.StreamBlockCipher;
+import org.bouncycastle.crypto.engines.RC4Engine;
+import org.bouncycastle.crypto.params.KeyParameter;
+
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
-import java.security.SecureRandom;
+import java.security.InvalidAlgorithmParameterException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
-public class Rc4Crypt implements ICrypt {
-    public final static String RC4 = "rc4";
-    private String name;
-    private String password;
+public class Rc4Crypt extends CryptBase {
+    private Logger logger = Logger.getLogger(Rc4Crypt.class.getName());
     
+    public final static String RC4 = "rc4";
+    RC4Engine engine = new RC4Engine();
+    
+    protected void setIV(byte[] iv, boolean isEncrypt) {
+        if (_ivLength == 0) {
+            return;
+        }
+        
+        if (isEncrypt) {
+            _encryptIV = new byte[_ivLength];
+            System.arraycopy(iv, 0, _encryptIV, 0, _ivLength);
+            engine.init(isEncrypt, new KeyParameter(_ssKey.getEncoded()));
+        } else {
+            _decryptIV = new byte[_ivLength];
+            System.arraycopy(iv, 0, _decryptIV, 0, _ivLength);
+            engine.init(isEncrypt, new KeyParameter(_ssKey.getEncoded()));
+        }
+    }
+    
+    @Override
+    protected StreamBlockCipher getCipher(boolean isEncrypted) throws InvalidAlgorithmParameterException {
+        return null;
+    }
+    
+    @Override
+    protected SecretKey getKey() {
+        return  new SecretKeySpec(_ssKey.getEncoded(), "RC4");
+    }
+    
+    @Override
+    protected void _encrypt(byte[] data, ByteArrayOutputStream stream) {
+        int noBytesProcessed;
+        byte[] buffer = new byte[data.length];
+    
+        noBytesProcessed = engine.processBytes(data, 0, data.length, buffer, 0);
+        stream.write(buffer, 0, noBytesProcessed);
+    }
+    
+    @Override
+    protected void _decrypt(byte[] data, ByteArrayOutputStream stream) {
+        int noBytesProcessed;
+        byte[] buffer = new byte[data.length];
+    
+        noBytesProcessed = engine.processBytes(data, 0, data.length, buffer, 0);
+        stream.write(buffer, 0, noBytesProcessed);
+    }
     
     public Rc4Crypt(String name, String password) {
-        this.name     = name;
-        this.password = password;
+        super(name, password);
     }
     
     public static Map<String, String> getCiphers() {
@@ -26,6 +73,7 @@ public class Rc4Crypt implements ICrypt {
     }
     
     
+    /*
     @Override
     public void encrypt(byte[] data, ByteArrayOutputStream stream) {
         try {
@@ -38,8 +86,11 @@ public class Rc4Crypt implements ICrypt {
             Cipher cipher = Cipher.getInstance("RC4");
             cipher.init(Cipher.DECRYPT_MODE, sk);
             byte[] decrypted = cipher.doFinal(data);
+    
+            System.out.println(new String(decrypted, "utf-8"));
+            stream.reset();
             stream.write(decrypted, 0, decrypted.length);
-            
+    
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -62,17 +113,17 @@ public class Rc4Crypt implements ICrypt {
         byte[] d = new byte[length];
         System.arraycopy(data, 0, d, 0, length);
         decrypt(d, stream);
-        
     }
+    */
     
     @Override
     public int getIVLength() {
-        return 0;
+        return 16;
     }
     
     @Override
     public int getKeyLength() {
-        return 0;
+        return 16;
     }
     
     

@@ -39,8 +39,8 @@ public class HttpDetect {
     
     static {
         try {
-            sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext.init(null, trustAllCerts, null);
         } catch (NoSuchAlgorithmException | KeyManagementException e) {
             e.printStackTrace();
         }
@@ -56,7 +56,9 @@ public class HttpDetect {
                                                           .build();
     private static Request request = new Request.Builder().url("https://www.google.com/").build();
     
-    public static void detect() throws IOException {
-        httpClient.newCall(request).execute().body().string();
+    public static boolean detect() throws IOException {
+        String html = httpClient.newCall(request).execute().body().string();
+        System.out.println(html);
+        return html.contains("html");
     }
 }
