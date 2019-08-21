@@ -14,11 +14,13 @@
             <artifactId>okhttp</artifactId>
             <version>4.1.0</version>
         </dependency>
+<!--
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
             <version>1.52</version>
         </dependency>
+-->
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
             <artifactId>json-simple</artifactId>
