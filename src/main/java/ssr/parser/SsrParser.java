@@ -40,7 +40,7 @@ public class SsrParser {
         List<String> fileLines = Files.readAllLines(Paths.get(args[0]), StandardCharsets.UTF_8);
         fileLines.forEach(site::parse);
     
-        ShadowsocksDetect.detect(site.getSsr());
+        ShadowsocksDetect.detectShadowsocks(site.getSsr());
     }
     
 }

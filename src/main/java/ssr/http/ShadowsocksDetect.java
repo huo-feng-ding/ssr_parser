@@ -2,8 +2,8 @@ package ssr.http;
 
 import com.stfl.misc.Config;
 import com.stfl.network.NioLocalServer;
+import com.zkdcloud.shadowsocks.client.socks5.ClientDetecter;
 
-import javax.net.ssl.SSLHandshakeException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
@@ -12,6 +12,8 @@ import java.util.Base64.Decoder;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Logger;
+
+import static com.zkdcloud.shadowsocks.client.socks5.config.ClientConfig.clientConfig;
 
 public class ShadowsocksDetect {
     private static final Logger LOGGER = Logger.getLogger(ShadowsocksDetect.class.getName());
@@ -23,14 +25,7 @@ public class ShadowsocksDetect {
         Thread t = new Thread(server);
         t.start();
         try {
-            return HttpDetect.detect();
-        } catch (SSLHandshakeException e) {
-            LOGGER.info("http detect ssl hand shake exception error " + e.getMessage());
-            e.printStackTrace();
-            return config.getMethod().equalsIgnoreCase("rc4");
-        } catch (Exception e) {
-            LOGGER.info("http detect error" + e.getMessage());
-            return false;
+            return HttpDetect.detect(config.getMethod());
         } finally {
             server.close();
         }
@@ -68,5 +63,41 @@ public class ShadowsocksDetect {
         }
         
         ssrSet.forEach(System.out::println);
+    }
+    
+    /****************下边的zkdcloud使用*/
+    public static void detectShadowsocks(Set<String> ssrSet) {
+        Iterator<String> iterator = ssrSet.iterator();
+        while (iterator.hasNext()) {
+            String ssr = iterator.next();
+            ClientDetecter clientDetecter = null;
+            try {
+                Config config = parseSsr(ssr);
+                // remote ip
+                clientConfig.setServer(config.getRemoteIpAddress());
+                // remote port
+                clientConfig.setServer_port(config.getRemotePort());
+                // remote secret key
+                clientConfig.setPassword(config.getPassword());
+                // encrypt key
+                clientConfig.setMethod(config.getMethod());
+                // method
+                clientConfig.setLocal_port(config.getLocalPort());
+                clientDetecter = new ClientDetecter();
+                boolean b = HttpDetect.detect(config.getMethod());
+                if (!b) {
+                    iterator.remove();
+                    LOGGER.info("removed:" + ssr);
+                }
+            } catch (Exception e) {
+                LOGGER.info("detect error:" + ssr + "   " + e.getMessage());
+                iterator.remove();
+            } finally {
+                if (clientDetecter != null) { clientDetecter.shutdown(); }
+            }
+        }
+        
+        ssrSet.forEach(System.out::println);
+        
     }
 }

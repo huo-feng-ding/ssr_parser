@@ -3,11 +3,10 @@ package ssr.http;
 import okhttp3.OkHttpClient;
 import okhttp3.OkHttpClient.Builder;
 import okhttp3.Request;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -17,6 +16,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 
 public class HttpDetect {
+    private static final Logger LOGGER = LoggerFactory.getLogger(HttpDetect.class);
+    
     private static final TrustManager[] trustAllCerts = new TrustManager[]{
             new X509TrustManager() {
                 @Override
@@ -56,9 +57,17 @@ public class HttpDetect {
                                                           .build();
     private static Request request = new Request.Builder().url("https://www.google.com/").build();
     
-    public static boolean detect() throws IOException {
-        String html = httpClient.newCall(request).execute().body().string();
-        System.out.println(html);
-        return html.contains("html");
+    public static boolean detect(String ssrMethod) throws IOException {
+        try {
+            String html = httpClient.newCall(request).execute().body().string();
+            System.out.println(html);
+            return html.contains("html");
+        } catch (SSLHandshakeException e) {
+            LOGGER.info("http detect ssl hand shake exception error " + e.getMessage());
+            return ssrMethod.equalsIgnoreCase("rc4");
+        } catch (Exception e) {
+            LOGGER.info("http detect error" + e.getMessage());
+            return false;
+        }
     }
 }
