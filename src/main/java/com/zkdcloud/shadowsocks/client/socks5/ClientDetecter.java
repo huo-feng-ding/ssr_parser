@@ -5,10 +5,7 @@ import com.zkdcloud.shadowsocks.client.socks5.channelHandler.inbound.Socks5Serve
 import com.zkdcloud.shadowsocks.client.socks5.config.ClientConfig;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.bootstrap.ServerBootstrapConfig;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -20,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 public class ClientDetecter {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientDetecter.class);
     private ServerBootstrap clientBootstrap = new ServerBootstrap();
-    private Socks5ServerDoorHandler socks5ServerDoorHandler = new Socks5ServerDoorHandler();
+    private Socks5ServerDoorHandler socks5ServerDoorHandler;
     private ChannelFuture channelFuture;
     
     public ClientDetecter() throws InterruptedException {
@@ -34,6 +31,11 @@ public class ClientDetecter {
                        .childHandler(new ChannelInitializer<Channel>() {
                            @Override
                            protected void initChannel(Channel ch) throws Exception {
+                               if (socks5ServerDoorHandler == null) {
+                                   socks5ServerDoorHandler = new Socks5ServerDoorHandler();
+                               }else {
+                                   socks5ServerDoorHandler = new Socks5ServerDoorHandler();
+                               }
                                ch.pipeline()
                                  .addLast("idle", new IdleStateHandler(20, 20, 0, TimeUnit.MINUTES))
                                  .addLast("crypt-init", new CryptInitInHandler())
