@@ -34,6 +34,7 @@ public class ClientDetecter {
                                if (socks5ServerDoorHandler == null) {
                                    socks5ServerDoorHandler = new Socks5ServerDoorHandler();
                                }else {
+                                   socks5ServerDoorHandler.closeChannel();
                                    socks5ServerDoorHandler = new Socks5ServerDoorHandler();
                                }
                                ch.pipeline()
