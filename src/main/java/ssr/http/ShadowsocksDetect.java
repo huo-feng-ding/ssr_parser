@@ -1,9 +1,5 @@
 package ssr.http;
 
-import com.stfl.misc.Config;
-import com.stfl.network.NioLocalServer;
-import com.zkdcloud.shadowsocks.client.socks5.ClientDetecter;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
@@ -13,11 +9,15 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import com.stfl.misc.Config;
+import com.stfl.network.NioLocalServer;
+import com.zkdcloud.shadowsocks.client.socks5.ClientDetecter;
+
 import static com.zkdcloud.shadowsocks.client.socks5.config.ClientConfig.clientConfig;
 
 public class ShadowsocksDetect {
-    private static final Logger LOGGER = Logger.getLogger(ShadowsocksDetect.class.getName());
-    private static Decoder base64Decoder = Base64.getUrlDecoder();
+    private static final Logger  LOGGER        = Logger.getLogger(ShadowsocksDetect.class.getName());
+    private static       Decoder base64Decoder = Base64.getUrlDecoder();
     
     public static boolean detect(Config config) throws IOException, InvalidAlgorithmParameterException {
         NioLocalServer server = new NioLocalServer(config);
@@ -50,8 +50,8 @@ public class ShadowsocksDetect {
         while (iterator.hasNext()) {
             String ssr = iterator.next();
             try {
-                Config config = parseSsr(ssr);
-                boolean b = detect(config);
+                Config  config = parseSsr(ssr);
+                boolean b      = detect(config);
                 if (!b) {
                     iterator.remove();
                     LOGGER.info("removed:" + ssr);
@@ -69,20 +69,19 @@ public class ShadowsocksDetect {
     public static void detectShadowsocks(Set<String> ssrSet) {
         Iterator<String> iterator = ssrSet.iterator();
         while (iterator.hasNext()) {
-            String ssr = iterator.next();
+            String         ssr            = iterator.next();
             ClientDetecter clientDetecter = null;
             try {
                 Config config = parseSsr(ssr);
+                clientConfig.setIdleTime(600);
                 // remote ip
-                clientConfig.setServer(config.getRemoteIpAddress());
-                // remote port
-                clientConfig.setServer_port(config.getRemotePort());
+                clientConfig.setServer(config.getRemoteIpAddress() + ":" + config.getRemotePort());
                 // remote secret key
                 clientConfig.setPassword(config.getPassword());
                 // encrypt key
                 clientConfig.setMethod(config.getMethod());
                 // method
-                clientConfig.setLocal_port(config.getLocalPort());
+                clientConfig.setLocal(config.getLocalIpAddress() + ":" + config.getLocalPort());
                 clientDetecter = new ClientDetecter();
                 boolean b = HttpDetect.detect(config.getMethod());
                 if (!b) {

@@ -12,6 +12,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 public class ClientDetecter {
@@ -38,13 +39,15 @@ public class ClientDetecter {
                                    socks5ServerDoorHandler = new Socks5ServerDoorHandler();
                                }
                                ch.pipeline()
-                                 .addLast("idle", new IdleStateHandler(20, 20, 0, TimeUnit.MINUTES))
+                                 .addLast("idle", new IdleStateHandler(0, 0, 600, TimeUnit.SECONDS))
                                  .addLast("crypt-init", new CryptInitInHandler())
                                  .addLast("socks5-door", socks5ServerDoorHandler);
                            }
                        });
-        int port = ClientConfig.clientConfig.getLocal_port();
-        return clientBootstrap.bind(port).sync();
+    
+        String[]          local         = ClientConfig.clientConfig.getLocal().split(":");
+        InetSocketAddress localAddress  = new InetSocketAddress(local[0], Integer.parseInt(local[1]));
+        return clientBootstrap.bind(localAddress).sync();
     }
     
     public void shutdown() {

@@ -7,7 +7,6 @@ import com.zkdcloud.shadowsocks.client.socks5.config.ClientContextConstant;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.socksx.v5.*;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -106,7 +105,7 @@ public class Socks5ServerDoorHandler extends ChannelInboundHandlerAdapter {
     private void buildRemoteConnect() {
         if (remoteBootstrap == null) {
             remoteBootstrap = new Bootstrap();
-            remoteBootstrap.group(new NioEventLoopGroup(1))
+            remoteBootstrap.group(clientChannel.eventLoop())
                     .channel(NioSocketChannel.class)
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .option(ChannelOption.TCP_NODELAY, true)
@@ -114,7 +113,7 @@ public class Socks5ServerDoorHandler extends ChannelInboundHandlerAdapter {
                         @Override
                         protected void initChannel(Channel ch) throws Exception {
                             ch.pipeline()
-                                    .addLast(new IdleStateHandler(0, 0, 120, TimeUnit.SECONDS))
+                                    .addLast(new IdleStateHandler(0, 0, ClientConfig.clientConfig.getIdleTime(), TimeUnit.SECONDS))
                                     .addLast(new SimpleChannelInboundHandler<ByteBuf>() {
                                         @Override
                                         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
@@ -140,7 +139,7 @@ public class Socks5ServerDoorHandler extends ChannelInboundHandlerAdapter {
                     });
 
             //init remote attr and getProxy
-            InetSocketAddress proxyAddress = getProxyAddress();
+            InetSocketAddress proxyAddress = getServerAddress(ClientConfig.clientConfig.getServer());
             remoteBootstrap.connect(proxyAddress).addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
                     this.remoteChannel = future.channel();
@@ -149,9 +148,7 @@ public class Socks5ServerDoorHandler extends ChannelInboundHandlerAdapter {
                     clientChannel.writeAndFlush(new DefaultSocks5CommandResponse(Socks5CommandStatus.SUCCESS, Socks5AddressType.IPv4));
                     clientChannel.pipeline().addLast("socks5-transfer", new TransferFlowHandler());
 
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("host: [{}:{}] connect success, client channelId is [{}],  remote channelId is [{}]", remoteChannel.id());
-                    }
+                    logger.info("host: {} connect success, [{}<->{}]", clientChannel.attr(ClientContextConstant.DST_ADDRESS).get().toString(), clientChannel.id(), remoteChannel.id());
                 } else {
                     logger.error("channelId: {}, cause : {}", future.channel().id(), future.cause().getMessage());
                     closeChannel();
@@ -163,33 +160,19 @@ public class Socks5ServerDoorHandler extends ChannelInboundHandlerAdapter {
      * close channel
      */
     public void closeChannel() {
-        try {
-            if (remoteChannel != null) {
-                remoteChannel.close();
-                remoteChannel = null;
-            }
-        
-            if (clientChannel != null) {
-                clientChannel.close();
-                clientChannel = null;
-            }
-        
-            if (remoteBootstrap != null) {
-                remoteBootstrap.config().group().shutdownGracefully();
-                remoteBootstrap = null;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (remoteChannel != null) {
+            remoteChannel.close();
+            remoteChannel = null;
         }
-    }
 
-    /**
-     * get proxyAddress from config
-     *
-     * @return inetSocketAddress
-     */
-    private InetSocketAddress getProxyAddress() {
-        return new InetSocketAddress(ClientConfig.clientConfig.getServer(),ClientConfig. clientConfig.getServer_port());
+        if (clientChannel != null) {
+            clientChannel.close();
+            clientChannel = null;
+        }
+
+        if (remoteBootstrap != null) {
+            remoteBootstrap = null;
+        }
     }
 
     @Override
@@ -199,5 +182,14 @@ public class Socks5ServerDoorHandler extends ChannelInboundHandlerAdapter {
             return;
         }
         super.userEventTriggered(ctx, evt);
+    }
+
+    private static InetSocketAddress getServerAddress(String address) {
+        if (!address.contains(":")) {
+            throw new IllegalArgumentException("illegal local address: " + address + ", address format: ip:port");
+        }
+        String host = address.substring(0, address.indexOf(":"));
+        int port = Integer.parseInt(address.substring(address.indexOf(":") + 1));
+        return new InetSocketAddress(host, port);
     }
 }
